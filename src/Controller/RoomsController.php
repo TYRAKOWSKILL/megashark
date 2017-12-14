@@ -1,18 +1,15 @@
 <?php
 namespace App\Controller;
-
 use App\Controller\AppController;
-
+use Cake\I18N\Time;
 /**
  * Rooms Controller
  *
- * @property \App\Model\Table\RoomsTable $Rooms
  *
  * @method \App\Model\Entity\Room[] paginate($object = null, array $settings = [])
  */
 class RoomsController extends AppController
 {
-
     /**
      * Index method
      *
@@ -21,11 +18,9 @@ class RoomsController extends AppController
     public function index()
     {
         $rooms = $this->paginate($this->Rooms);
-
         $this->set(compact('rooms'));
         $this->set('_serialize', ['rooms']);
     }
-
     /**
      * View method
      *
@@ -36,13 +31,27 @@ class RoomsController extends AppController
     public function view($id = null)
     {
         $room = $this->Rooms->get($id, [
-            'contain' => ['Showtimes']
+            'contain' => []
         ]);
-
         $this->set('room', $room);
         $this->set('_serialize', ['room']);
+        $conditions = array("room_id" => $id);
+        $showtimes = $this->Rooms->Showtimes
+            ->find('all')
+            ->where(['room_id'=>$id])
+            ->contain(['Movies'])
+            ->where(['start >='=>new Time("monday this week")])
+            ->where(['start <='=>new Time("sunday this week")]);  
+        $showtimesThisWeek = array(1=> array(), 2=>array(), 3=>array(), 4=>array(), 5=>array(), 6=>array(), 7=>array());
+        
+        foreach($showtimes as $key=>$value)
+        {
+            $numOfDay = $value->start->format('N');
+            array_push($showtimesThisWeek["$numOfDay"],$value);
+        }
+        
+        $this->set('showtimes',$showtimesThisWeek);
     }
-
     /**
      * Add method
      *
@@ -55,7 +64,6 @@ class RoomsController extends AppController
             $room = $this->Rooms->patchEntity($room, $this->request->getData());
             if ($this->Rooms->save($room)) {
                 $this->Flash->success(__('The room has been saved.'));
-
                 return $this->redirect(['action' => 'index']);
             }
             $this->Flash->error(__('The room could not be saved. Please, try again.'));
@@ -63,7 +71,6 @@ class RoomsController extends AppController
         $this->set(compact('room'));
         $this->set('_serialize', ['room']);
     }
-
     /**
      * Edit method
      *
@@ -80,7 +87,6 @@ class RoomsController extends AppController
             $room = $this->Rooms->patchEntity($room, $this->request->getData());
             if ($this->Rooms->save($room)) {
                 $this->Flash->success(__('The room has been saved.'));
-
                 return $this->redirect(['action' => 'index']);
             }
             $this->Flash->error(__('The room could not be saved. Please, try again.'));
@@ -88,7 +94,6 @@ class RoomsController extends AppController
         $this->set(compact('room'));
         $this->set('_serialize', ['room']);
     }
-
     /**
      * Delete method
      *
@@ -105,7 +110,6 @@ class RoomsController extends AppController
         } else {
             $this->Flash->error(__('The room could not be deleted. Please, try again.'));
         }
-
         return $this->redirect(['action' => 'index']);
     }
 }
